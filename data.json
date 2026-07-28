@@ -1,0 +1,100 @@
+
+const STORAGE_KEY = "hfLeaderboardDataV1";
+const defaultData = {"updatedAt": "July 28, 2026", "monthly": [{"name": "Paul Moriarity", "sales": 207494.32}, {"name": "Reggie Trankle", "sales": 169730.05}, {"name": "Ben Patterson", "sales": 143358.36}, {"name": "Juan Perez", "sales": 117032.03}, {"name": "Jill Cochran", "sales": 103112.52}, {"name": "Bryan Fleming", "sales": 87527.41}], "yearly": [{"name": "Reggie Trankle", "sales": 802817.39}, {"name": "Paul Moriarity", "sales": 795752.63}, {"name": "Jill Cochran", "sales": 753489.99}, {"name": "Mitchell Nolan", "sales": 669875.91}, {"name": "Juan Perez", "sales": 609384.1}, {"name": "AJ Thompson", "sales": 559961.95}], "teams": [{"name": "Continental Heavyweight", "sales": 358600.83}, {"name": "Rough Riders", "sales": 256996.32}, {"name": "Shock Troopers", "sales": 235528.97}, {"name": "Forged Iron Vanguard", "sales": 180332.88}, {"name": "Blood, Sweat & Blue", "sales": 73243.32}]};
+let current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || defaultData;
+
+const money = value => new Intl.NumberFormat("en-US", {
+  style:"currency", currency:"USD", maximumFractionDigits:0
+}).format(value);
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = "", quoted = false;
+  for (let i=0; i<text.length; i++) {
+    const ch = text[i], next = text[i+1];
+    if (ch === '"' && quoted && next === '"') { cell += '"'; i++; }
+    else if (ch === '"') quoted = !quoted;
+    else if (ch === "," && !quoted) { row.push(cell); cell = ""; }
+    else if ((ch === "\n" || ch === "\r") && !quoted) {
+      if (ch === "\r" && next === "\n") i++;
+      row.push(cell); cell = "";
+      if (row.some(v => v.trim() !== "")) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  if (cell.length || row.length) { row.push(cell); rows.push(row); }
+  const headers = rows.shift().map(h => h.trim());
+  return rows.map(cols => Object.fromEntries(headers.map((h,i) => [h, cols[i] ?? ""])));
+}
+
+function cleanMoney(v) {
+  const n = Number(String(v ?? "").replace(/[$,\s]/g,""));
+  return Number.isFinite(n) ? n : 0;
+}
+function reportLeaders(records) {
+  if (!records.length || !("Rep" in records[0]) || !("Sold" in records[0])) {
+    throw new Error('The report must include columns named "Rep" and "Sold".');
+  }
+  return records
+    .map(r => ({name:String(r.Rep || "").trim(), sales:cleanMoney(r.Sold)}))
+    .filter(r => r.name)
+    .sort((a,b) => b.sales-a.sales)
+    .slice(0,6);
+}
+function teamTotal(records) {
+  if (!records.length || !("Sold" in records[0])) {
+    throw new Error('The team report must include a column named "Sold".');
+  }
+  return records.reduce((sum,r) => sum + cleanMoney(r.Sold), 0);
+}
+async function readInput(id) {
+  const file = document.getElementById(id).files[0];
+  if (!file) return null;
+  return parseCSV(await file.text());
+}
+function renderPreview() {
+  const body = document.getElementById("preview");
+  const rows = [
+    ...current.monthly.map((x,i)=>({section:"Monthly",rank:i+1,...x})),
+    ...current.yearly.map((x,i)=>({section:"Yearly",rank:i+1,...x})),
+    ...current.teams.map((x,i)=>({section:"Team",rank:i+1,...x}))
+  ];
+  body.innerHTML = rows.map(r => `<tr><td>${r.section}</td><td>${r.rank}</td><td>${r.name}</td><td>${money(r.sales)}</td></tr>`).join("");
+}
+document.getElementById("publish").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  try {
+    status.textContent = "Reading reports…";
+    const monthly = await readInput("monthly");
+    const yearly = await readInput("yearly");
+    if (monthly) current.monthly = reportLeaders(monthly);
+    if (yearly) current.yearly = reportLeaders(yearly);
+
+    const teamDefs = [
+      ["team-continental","Continental Heavyweight"],
+      ["team-rough","Rough Riders"],
+      ["team-shock","Shock Troopers"],
+      ["team-forged","Forged Iron Vanguard"],
+      ["team-blue","Blood, Sweat & Blue"]
+    ];
+    const teamMap = new Map(current.teams.map(t => [t.name,t.sales]));
+    for (const [id,name] of teamDefs) {
+      const records = await readInput(id);
+      if (records) teamMap.set(name, teamTotal(records));
+    }
+    current.teams = [...teamMap].map(([name,sales])=>({name,sales})).sort((a,b)=>b.sales-a.sales);
+    current.updatedAt = new Date().toLocaleString("en-US", {dateStyle:"medium",timeStyle:"short"});
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+    renderPreview();
+    status.textContent = "Published in this browser. Open the TV Display tab to view it.";
+  } catch (err) {
+    status.textContent = "Could not publish: " + err.message;
+  }
+});
+document.getElementById("reset").addEventListener("click", () => {
+  current = structuredClone(defaultData);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+  renderPreview();
+  document.getElementById("status").textContent = "Sample data restored.";
+});
+renderPreview();

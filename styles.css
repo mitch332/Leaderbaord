@@ -1,0 +1,68 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>H&F Leaderboard Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="admin-wrap">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">H&F</div>
+          <div>
+            <div class="eyebrow">Report Manager</div>
+            <h1 style="font-size:48px">Leaderboard Admin</h1>
+          </div>
+        </div>
+        <a class="button secondary" href="index.html" target="_blank">Open TV Display</a>
+      </header>
+
+      <div class="card">
+        <h2>Individual reports</h2>
+        <p>Upload the ContractorsCloud CSV for each period. The site uses the <strong>Rep</strong> and <strong>Sold</strong> columns.</p>
+        <div class="upload-grid">
+          <label class="upload"><span>Monthly Leaders</span><input id="monthly" type="file" accept=".csv,text/csv"></label>
+          <label class="upload"><span>Yearly Leaders</span><input id="yearly" type="file" accept=".csv,text/csv"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Team reports</h2>
+        <p>Each file is totaled by the <strong>Sold</strong> column, then all five teams are ranked automatically.</p>
+        <div class="upload-grid">
+          <label class="upload"><span>Continental Heavyweight</span><input id="team-continental" type="file" accept=".csv,text/csv"></label>
+          <label class="upload"><span>Rough Riders</span><input id="team-rough" type="file" accept=".csv,text/csv"></label>
+          <label class="upload"><span>Shock Troopers</span><input id="team-shock" type="file" accept=".csv,text/csv"></label>
+          <label class="upload"><span>Forged Iron Vanguard</span><input id="team-forged" type="file" accept=".csv,text/csv"></label>
+          <label class="upload"><span>Blood, Sweat &amp; Blue</span><input id="team-blue" type="file" accept=".csv,text/csv"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="actions">
+          <button id="publish" type="button">Publish Updates</button>
+          <button id="reset" class="secondary" type="button">Restore Sample Data</button>
+          <span id="status" class="status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Current preview</h2>
+        <table>
+          <thead><tr><th>Board</th><th>Rank</th><th>Name</th><th>Sales</th></tr></thead>
+          <tbody id="preview"></tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        This prototype saves uploads in the current browser only. The deployed version will use a secure online database so an admin upload refreshes every office TV.
+      </div>
+    </div>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>
